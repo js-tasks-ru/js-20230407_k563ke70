@@ -1,5 +1,6 @@
 export default class NotificationMessage {
     static current = 1
+    static previous = {}
 
     constructor(message = '', {duration = 0, type = ''} = {}) {
         this.message = message
@@ -35,11 +36,12 @@ export default class NotificationMessage {
 
     show(node = this.element) {
         this.element = node
-
+        
         if (NotificationMessage.current > 1) {
-            return
+            NotificationMessage.previous.remove()
         }
-
+        
+        NotificationMessage.previous = this.element
         NotificationMessage.current++
 
         document.body.append(this.element)
@@ -60,6 +62,7 @@ export default class NotificationMessage {
         if (this.element) {
             this.remove()
             this.element = null
+            this.previous = null
         }
     }
 }
