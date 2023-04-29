@@ -63,27 +63,16 @@ export default class SortableTable {
     wrapper.innerHTML = this.template
     this.element = wrapper.firstElementChild
 
-    this.subElements = this.getSubElement()
-    this.subHeaderElements = this.getSubHeaderElements()
+    this.subElements = this.getSubElements(this.element, 'element')
+    this.subHeaderElements = this.getSubElements(this.subElements.header, 'id')
   }
 
-  getSubElement() {
+  getSubElements(node, value) {
     const result = {}
-    const elements = this.element.querySelectorAll(`[data-element]`)
+    const elements = node.querySelectorAll(`[data-${value}]`)
 
-    for (const node of elements) {
-      result[node.dataset.element] = node
-    }
-
-    return result
-  }
-
-  getSubHeaderElements() {
-    const result = {}
-    const elements = this.subElements.header.querySelectorAll(`[data-id]`)
-
-    for (const node of elements) {
-      result[node.dataset.id] = node
+    for (const elem of elements) {
+      result[elem.dataset[value]] = elem
     }
 
     return result
