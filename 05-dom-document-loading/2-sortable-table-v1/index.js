@@ -1,47 +1,12 @@
 export default class SortableTable {
   subElements = {}
-  subHeader = {}
+  subHeaderElements = {}
 
   constructor(headerConfig = [], data = []) {
     this.headerConfig = headerConfig
     this.data = data
 
     this.render()
-  }
-
-  getHeader() {
-    return this.headerConfig.map(item => {
-      return `
-        <div class="sortable-table__cell" data-id="${item.id}" data-sortable="${item.sortable}" data-order>
-          <span>${item.title}</span>
-        </div>`
-    }).join('')
-  }
-
-  getArrow(item) {
-    return `
-        <span>${item.title}</span>
-        <span data-element="arrow" class="sortable-table__sort-arrow">
-          <span class="sort-arrow"></span>
-        </span>
-    `
-  }
-
-  getBody(data = this.data) {
-    return data.map(item => {
-      return `
-        <a href="#" class="sortable-table__row">
-          <div class="sortable-table__cell">
-            <img class="sortable-table-image" alt="Image" src="#">
-          </div>
-          <div class="sortable-table__cell">${item.title}</div>
-
-          <div class="sortable-table__cell">${item.quantity}</div>
-          <div class="sortable-table__cell">${item.price}</div>
-          <div class="sortable-table__cell">${item.sales}</div>
-        </a>
-      `
-    }).join('')
   }
 
   get template() {
@@ -59,6 +24,49 @@ export default class SortableTable {
     `
   }
 
+  getHeader() {
+    return this.headerConfig.map(item => {
+      return `
+        <div class="sortable-table__cell" data-id="${item.id}" data-sortable="${item.sortable}" data-order>
+          <span>${item.title}</span>
+          <span data-element="arrow" class="sortable-table__sort-arrow">
+          <span class="sort-arrow"></span>
+        </span>
+        </div>`
+    }).join('')
+  }
+
+  getBody(data = this.data) {  
+    return data.map(product => {
+      return `
+        <a href="#" class="sortable-table__row">
+          ${this.getDescriptionProduct(product)}
+        </a>
+    `
+    }).join('')
+  }
+
+  getDescriptionProduct(product) {
+    const cells = this.headerConfig.map(({id, template}) => {
+      return {id, template}
+    })
+
+    return cells.map(({id, template}) => {
+      return template
+        ? template(product[id])
+        : `<div class="sortable-table__cell">${product[id]}</div>`
+    }).join('')
+  }
+
+  render() {
+    const wrapper = document.createElement('div')
+    wrapper.innerHTML = this.template
+    this.element = wrapper.firstElementChild
+
+    this.subElements = this.getSubElement()
+    this.subHeaderElements = this.getSubHeaderElements()
+  }
+
   getSubElement() {
     const result = {}
     const elements = this.element.querySelectorAll(`[data-element]`)
@@ -70,7 +78,7 @@ export default class SortableTable {
     return result
   }
 
-  getSubHeader() {
+  getSubHeaderElements() {
     const result = {}
     const elements = this.subElements.header.querySelectorAll(`[data-id]`)
 
@@ -81,49 +89,39 @@ export default class SortableTable {
     return result
   }
 
-  render() {
-    const wrapper = document.createElement('div')
-    wrapper.innerHTML = this.template
-    this.element = wrapper.firstElementChild
+  sort(field, order) {
+    const itemOnSort = this.headerConfig.find(item => item.id === field)
 
-    this.subElements = this.getSubElement()
-    this.subHeader = this.getSubHeader()
-    
-  }
-
-  sort(fieldValue, orderValue) {
-    const item = this.headerConfig.find(item => item.id === fieldValue)
-    const arrow = this.getArrow(item)
-
-    this.subElements.header.innerHTML = this.getHeader()
-    this.subHeader = this.getSubHeader()
-    
-    this.subHeader[fieldValue].innerHTML = arrow
-    this.subHeader[fieldValue].dataset.order = orderValue
-    this.subElements = this.getSubElement()
-
-    const descriptions = {
-      asc: 1,
-      desc: -1
+    for (const value of Object.values(this.subHeaderElements)) {
+      value.dataset.order = ''
     }
+      
+    if(itemOnSort.sortable) {
 
-    const description = descriptions[orderValue]
-    
-    if(item.sortable) {
-      const data = this.data.map(item => ({...item})).sort((item1, item2) => {
+      this.subHeaderElements[field].dataset.order = order
 
-        if(typeof item1[fieldValue] === 'string' && typeof item2[fieldValue] === 'string') {
-          return description * item1[fieldValue].localeCompare(item2[fieldValue], ['ru', 'en'], { numeric: true, sensitivity: 'base', caseFirst: 'upper'})
-        }
+      const descriptions = {
+        asc: 1,
+        desc: -1
+      }
 
-        if(typeof item1[fieldValue] === 'number' && typeof item2[fieldValue] === 'number') {
-          return description * (item1[fieldValue] - item2[fieldValue])
-        }
-      })
+      const description = descriptions[order]
+      
+      const data = this.data
+        .map(product => ({...product}))
+        .sort((item1, item2) => {
+          
+          if (itemOnSort.sortType === 'string') {
+            return description * item1[field].localeCompare(item2[field], ['ru', 'en'])
+          }
 
-      this.subElements.body.innerHTML = this.getBody(data)
-    }
-
+          if(itemOnSort.sortType === 'number') {
+            return description * (item1[field] - item2[field])
+          }
+        })
+      
+        this.subElements.body.innerHTML = this.getBody(data)
+      }
   }
 
   remove() {
@@ -136,7 +134,7 @@ export default class SortableTable {
     this.remove()
     this.element = null
     this.subElements = null
-    this.subHeader = null
+    this.subHeaderElements = null
   }
 }
 
